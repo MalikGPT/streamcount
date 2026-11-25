@@ -1,4 +1,4 @@
-import asyncio, json, logging, os, secrets, time
+import asyncio, json, logging, os, re, secrets, time
 from contextlib import asynccontextmanager
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -23,6 +23,13 @@ def admin(c: HTTPBasicCredentials = Depends(security)):
         raise HTTPException(401, headers={"WWW-Authenticate": "Basic"})
 
 
+def clean(e):
+    msg = str(e)
+    if isinstance(e, httpx.HTTPStatusError):
+        msg += " | " + e.response.text[:200]
+    return re.sub(r"(access_token|api_key|key|client_secret|token)=[^&\s'\"]+", r"\1=***", msg)
+
+
 async def worker(name, http):
     ctx = {}
     while True:
@@ -32,8 +39,8 @@ async def worker(name, http):
             try:
                 mon.report(name, await asyncio.wait_for(ADAPTERS[name](cfg, http, ctx), 25))
             except Exception as e:
-                log.warning("%s poll error: %s", name, e)
-                mon.report(name, None, error=e)
+                log.warning("%s poll error: %s", name, clean(e))
+                mon.report(name, None, error=clean(e))
         await asyncio.sleep(cfg["interval"] if cfg["enabled"] else 5)
 
 

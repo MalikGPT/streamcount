@@ -128,10 +128,11 @@ async def nimo(cfg, http, ctx):
 
 
 async def instagram(cfg, http, ctx):
-    """Official Graph API can detect a live broadcast (live_media) but does NOT expose
-    concurrent viewers, so viewers=None => logo shows, nothing added to the total."""
+    """Detects a live broadcast only; the API has no concurrent-viewer field, so viewers=None.
+    Tokens starting 'IG' (Instagram Login) use graph.instagram.com; others use graph.facebook.com."""
     need(cfg, "ig_user_id", "access_token")
-    r = await http.get(f"https://graph.facebook.com/v21.0/{cfg['ig_user_id']}/live_media",
+    host = "graph.instagram.com" if cfg["access_token"].startswith("IG") else "graph.facebook.com"
+    r = await http.get(f"https://{host}/v21.0/{cfg['ig_user_id']}/live_media",
                        params={"access_token": cfg["access_token"]})
     r.raise_for_status()
     return {"live": bool(r.json().get("data")), "viewers": None}
