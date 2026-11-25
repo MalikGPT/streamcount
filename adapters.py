@@ -99,7 +99,8 @@ async def kick(cfg, http, ctx):
 async def rumble(cfg, http, ctx):
     need(cfg, "api_key")  # Rumble 'Live Stream API' URL key from your creator dashboard
     r = await http.get(cfg.get("api_url") or "https://rumble.com/-livestream-api/get-data",
-                       params={"key": cfg["api_key"]})
+                       params={"key": cfg["api_key"]},
+                       headers={**UA, "Accept": "application/json,*/*", "Accept-Language": "en-US,en;q=0.9"})
     r.raise_for_status()
     j = r.json()
     streams = j.get("livestreams") or ([j] if "is_live" in j else [])
