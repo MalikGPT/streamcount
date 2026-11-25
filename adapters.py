@@ -2,7 +2,9 @@
 or RAISES on any error (so errors are never mistaken for offline/zero).
 STATUS: none of these have been run against live services by the author."""
 import re, time, json
+import httpx
 
+LIVE_RE = re.compile(r'"isLive(?:Now)?"\s*:\s*true')
 UA = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36"}
 
 
@@ -18,10 +20,16 @@ async def _yt_discover(cfg, http, ctx):
     r = await http.get(f"https://www.youtube.com/{path}/live", headers=UA,
                        cookies={"CONSENT": "YES+1"}, follow_redirects=True)
     r.raise_for_status()
-    m = re.search(r'rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', r.text)
-    if m and '"isLive":true' in r.text:
+    t = r.text
+    if "consent.youtube.com" in str(r.url) or "Before you continue" in t[:6000]:
+        raise RuntimeError("youtube: consent/bot page returned (IP blocked?)")
+    m = (re.search(r'rel="canonical" href="https://www\.youtube\.com/watch\?v=([\w-]{11})"', t)
+         or re.search(r'"videoDetails":\{"videoId":"([\w-]{11})"', t))
+    if m and LIVE_RE.search(t):
         ctx["vid"] = m.group(1)
-        return r.text if "watching" in r.text else None
+        return t if "watching" in t else None
+    if not m and "canonical" not in t:
+        raise RuntimeError("youtube: unexpected page (no canonical link)")
     return False
 
 
@@ -52,7 +60,7 @@ async def youtube(cfg, http, ctx):
                            cookies={"CONSENT": "YES+1"}, follow_redirects=True)
         r.raise_for_status()
         page = r.text
-    if '"isLive":true' not in page:
+    if not LIVE_RE.search(page):
         ctx.pop("vid", None)
         return {"live": False, "viewers": None}
     m = (re.search(r'"text":"([\d,.]+)"\},\{"text":" watching', page)
@@ -98,6 +106,12 @@ async def kick(cfg, http, ctx):
 
 async def rumble(cfg, http, ctx):
     need(cfg, "api_key")  # Rumble 'Live Stream API' URL key from your creator dashboard
+    px = cfg.get("proxy")
+    if px:  # optional proxy, e.g. http://user:pass@host:port (client cached per proxy URL)
+        if ctx.get("px") != px:
+            if ctx.get("pxc"): await ctx["pxc"].aclose()
+            ctx["px"], ctx["pxc"] = px, httpx.AsyncClient(proxy=px, timeout=15)
+        http = ctx["pxc"]
     r = await http.get(cfg.get("api_url") or "https://rumble.com/-livestream-api/get-data",
                        params={"key": cfg["api_key"]},
                        headers={**UA, "Accept": "application/json,*/*", "Accept-Language": "en-US,en;q=0.9"})
@@ -171,7 +185,7 @@ ADAPTERS = dict(youtube=youtube, twitch=twitch, rumble=rumble, tiktok=tiktok,
 FIELDS = dict(
     youtube=[("channel", 0), ("api_key", 1)],  # api_key optional
     twitch=[("login", 0), ("client_id", 0), ("client_secret", 1)],
-    rumble=[("api_key", 1)],
+    rumble=[("api_key", 1), ("proxy", 1)],
     tiktok=[("username", 0)],
     kick=[("slug", 0), ("client_id", 0), ("client_secret", 1)],
     nimo=[("room_id", 0)],
