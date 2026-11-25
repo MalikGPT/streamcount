@@ -11,6 +11,10 @@ services:
         value: 3.11.9
       - key: ADMIN_PASSWORD
         generateValue: true
+      - key: PUSH_TOKEN
+        generateValue: true
+      - key: RUMBLE_MODE
+        value: push
       # Optional seed values (dashboard saves to disk, which resets on redeploy without a Render Disk):
       - {key: YOUTUBE_API_KEY, sync: false}
       - {key: TWITCH_CLIENT_ID, sync: false}

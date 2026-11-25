@@ -27,6 +27,7 @@ def clean(e):
     msg = str(e)
     if isinstance(e, httpx.HTTPStatusError):
         msg += " | " + e.response.text[:200]
+    msg = re.sub(r"//[^/@\s]+@", "//***@", msg)
     return re.sub(r"(access_token|api_key|key|client_secret|token)=[^&\s'\"]+", r"\1=***", msg)
 
 
@@ -35,7 +36,7 @@ async def worker(name, http):
     while True:
         cfg = config.get(name)
         mon.configure(name, cfg["enabled"], cfg["interval"])
-        if cfg["enabled"]:
+        if cfg["enabled"] and os.environ.get(f"{name.upper()}_MODE") != "push":
             try:
                 mon.report(name, await asyncio.wait_for(ADAPTERS[name](cfg, http, ctx), 25))
             except Exception as e:
@@ -66,6 +67,22 @@ async def lifespan(app):
 app = FastAPI(lifespan=lifespan)
 S = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/logos", StaticFiles(directory=os.path.join(S, "logos")), name="logos")
+
+
+@app.post("/api/push/{name}")
+async def push(name: str, request: Request):
+    tok = os.environ.get("PUSH_TOKEN", "")
+    got = request.headers.get("authorization", "").removeprefix("Bearer ")
+    if not tok or not secrets.compare_digest(got.encode(), tok.encode()):
+        raise HTTPException(401)
+    if name not in mon.p: raise HTTPException(404)
+    b = await request.json()
+    if b.get("error"):
+        mon.report(name, None, error=str(b["error"])[:200])
+    else:
+        v = b.get("viewers")
+        mon.report(name, {"live": bool(b.get("live")), "viewers": int(v) if v is not None else None})
+    return {"ok": True}
 
 
 @app.get("/health")
