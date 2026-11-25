@@ -6,8 +6,18 @@ const TOKEN = process.env.PUSH_TOKEN, EVERY = Math.max(5, +process.env.INTERVAL 
 const API = process.env.RUMBLE_API_URL || "https://rumble.com/-livestream-api/get-data";
 if (!KEY || !SERVER || !TOKEN) { console.error("Set RUMBLE_API_KEY, SERVER_URL, PUSH_TOKEN"); process.exit(1); }
 
+const AGENTS = [
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15",
+  "Mozilla/5.0 (X11; Linux x86_64; rv:125.0) Gecko/20100101 Firefox/125.0",
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36 Edg/123.0.0.0",
+];
+const ua = () => process.env.USER_AGENT || AGENTS[Math.floor(Math.random() * AGENTS.length)];
+
 async function check() {
-  const r = await fetch(`${API}?key=${encodeURIComponent(KEY)}`, { headers: { Accept: "application/json" } });
+  const r = await fetch(`${API}?key=${encodeURIComponent(KEY)}`, {
+    headers: { "User-Agent": ua(), Accept: "application/json,text/plain,*/*", "Accept-Language": "en-US,en;q=0.9" },
+  });
   if (!r.ok) throw new Error(`Rumble HTTP ${r.status}`);
   const j = await r.json();
   const list = j.livestreams || ("is_live" in j ? [j] : []);
