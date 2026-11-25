@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MalikGPT Viewer Counter - Admin</title>
+<style>body{font-family:system-ui;background:#111;color:#eee;max-width:900px;margin:20px auto;padding:0 12px}
+.card{background:#1c1c1f;border-radius:10px;padding:12px 16px;margin:12px 0}h3{margin:0 0 8px;display:flex;gap:10px;align-items:center}
+img{height:22px}label{display:block;font-size:13px;margin:6px 0 2px;color:#aaa}input[type=text],input[type=password],input[type=number]{width:100%;padding:6px;background:#0c0c0e;color:#eee;border:1px solid #333;border-radius:6px;box-sizing:border-box}
+button{padding:7px 14px;border:0;border-radius:6px;background:#7c3aed;color:#fff;cursor:pointer;margin-top:8px}.s{font-size:12px;color:#9a9}.e{color:#f88}
+iframe{width:100%;height:110px;border:1px dashed #444;background:repeating-conic-gradient(#222 0 25%,#2a2a2a 0 50%) 0 0/16px 16px;border-radius:8px}</style></head><body>
+<h2>MalikGPT Viewer Counter</h2>
+<div class="card"><b>Browser-source URL (OBS / Meld)</b><br><input type="text" id="u" readonly onclick="this.select()"><div class="s">Optional: ?scale=1.5 &amp; align=left|center|right. Set source size e.g. 1200x120.</div></div>
+<div class="card"><b>Preview</b><iframe src="/overlay"></iframe></div><div id="c"></div>
+<script>
+const set={tiktok:'Disabled until you enable it.',instagram:'Detects live only; Graph API gives no concurrent viewers.',nimo:'Experimental unofficial page parsing.'};
+document.getElementById('u').value=location.origin+'/overlay';
+async function load(){const r=await (await fetch('/api/admin/config')).json();const c=document.getElementById('c');c.innerHTML='';
+for(const[n,v]of Object.entries(r.config)){const st=r.status[n];const d=document.createElement('div');d.className='card';
+let h=`<h3><img src="/logos/${n}.svg">${n} <span class="s">${st.enabled?(st.live?'LIVE '+(st.viewers??'n/a'):'offline'):'disabled'} | last ok: ${st.age==null?'never':st.age+'s ago'} ${st.last_error?'<span class=e>| '+st.last_error+'</span>':''}</span></h3><div class="s">${set[n]||''}</div>
+<label><input type="checkbox" id="${n}-enabled" ${v.enabled?'checked':''}> Enabled</label><label>Refresh interval (s)</label><input type="number" id="${n}-interval" min="5" value="${v.interval}">`;
+for(const k of Object.keys(v).filter(k=>!['enabled','interval'].includes(k)))h+=`<label>${k}</label><input type="${v[k]==='set'||/key|secret|token/.test(k)?'password':'text'}" id="${n}-${k}" value="${v[k]}" placeholder="${/key|secret|token/.test(k)?'(leave to keep current)':''}">`;
+d.innerHTML=h+`<button onclick="save('${n}',${JSON.stringify(Object.keys(v))})">Save</button>`;c.appendChild(d)}}
+async function save(n,keys){const b={};for(const k of keys){const e=document.getElementById(n+'-'+k);b[k]=k==='enabled'?e.checked:e.value}
+await fetch('/api/admin/config/'+n,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});load()}
+load();setInterval(()=>{if(!document.activeElement||document.activeElement.tagName!=='INPUT')load()},10000);
+</script></body></html>

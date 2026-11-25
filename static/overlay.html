@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MalikGPT Viewers</title>
+<style>
+html,body{margin:0;background:transparent;overflow:hidden;height:100%}
+#bar{display:flex;align-items:center;gap:calc(18px*var(--s,1));height:100%;font-family:"Inter","Segoe UI",system-ui,sans-serif;color:#fff;
+ font-size:calc(64px*var(--s,1));font-weight:800;text-shadow:0 2px 8px rgba(0,0,0,.55);white-space:nowrap;padding:0 calc(16px*var(--s,1))}
+#bar.right{justify-content:flex-end}#bar.center{justify-content:center}
+#logos{display:flex;align-items:center;gap:calc(14px*var(--s,1))}
+.logo{height:calc(56px*var(--s,1));width:calc(56px*var(--s,1));opacity:0;transform:scale(.4);transition:all .45s cubic-bezier(.2,.9,.3,1.2);flex:none}
+.logo.in{opacity:1;transform:scale(1)}
+.logo.out{opacity:0;transform:scale(.4);width:0;margin-left:calc(-14px*var(--s,1))}
+#num{font-variant-numeric:tabular-nums}
+#lbl{font-size:.42em;letter-spacing:.12em;font-weight:700;opacity:.9}
+</style></head><body><div id="bar"><div id="logos"></div><span id="num"></span><span id="lbl"></span></div>
+<script>
+const q=new URLSearchParams(location.search),bar=document.getElementById('bar');
+document.documentElement.style.setProperty('--s',q.get('scale')||1);
+if(q.get('align'))bar.classList.add(q.get('align'));
+const L=document.getElementById('logos'),N=document.getElementById('num'),B=document.getElementById('lbl');
+let shown=[],cur=0,tgt=0,raf;
+function tick(){cur+= (tgt-cur)*.2; if(Math.abs(tgt-cur)<.5)cur=tgt; N.textContent=Math.round(cur).toLocaleString('en-US'); if(cur!==tgt)raf=requestAnimationFrame(tick)}
+function apply(s){
+ for(const p of shown.filter(p=>!s.platforms.includes(p))){const e=document.getElementById('l-'+p);if(e){e.classList.remove('in');e.classList.add('out');setTimeout(()=>e.remove(),500)}}
+ for(const p of s.platforms){if(!document.getElementById('l-'+p)){const i=document.createElement('img');i.id='l-'+p;i.className='logo';i.src='/logos/'+p+'.svg';L.appendChild(i);requestAnimationFrame(()=>requestAnimationFrame(()=>i.classList.add('in')))}}
+ // consistent order
+ const ord=['youtube','twitch','rumble','tiktok','kick','nimo','instagram'];
+ [...L.children].sort((a,b)=>ord.indexOf(a.id.slice(2))-ord.indexOf(b.id.slice(2))).forEach(e=>L.appendChild(e));
+ shown=s.platforms.slice();
+ if(s.live){tgt=s.total;B.textContent='VIEWERS';cancelAnimationFrame(raf);tick()}
+ else{N.textContent='OFFLINE';B.textContent='';cur=tgt=0}
+}
+function connect(){const es=new EventSource('/events');es.onmessage=e=>apply(JSON.parse(e.data));}
+connect(); // EventSource auto-reconnects
+</script></body></html>

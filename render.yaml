@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: malikgpt-viewer-counter
+    runtime: python
+    plan: starter   # free plan sleeps after ~15 min idle and would stop monitoring
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      # Optional seed values (dashboard saves to disk, which resets on redeploy without a Render Disk):
+      - {key: YOUTUBE_API_KEY, sync: false}
+      - {key: TWITCH_CLIENT_ID, sync: false}
+      - {key: TWITCH_CLIENT_SECRET, sync: false}
+      - {key: KICK_CLIENT_ID, sync: false}
+      - {key: KICK_CLIENT_SECRET, sync: false}
+      - {key: RUMBLE_API_KEY, sync: false}
+      - {key: INSTAGRAM_ACCESS_TOKEN, sync: false}
