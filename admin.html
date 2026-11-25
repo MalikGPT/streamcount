@@ -1,0 +1,29 @@
+<!doctype html><html><head><meta charset="utf-8"><title>MalikGPT Viewer Counter - Admin</title>
+<style>body{font-family:system-ui;background:#111;color:#eee;max-width:900px;margin:20px auto;padding:0 12px 80px}
+.card{background:#1c1c1f;border-radius:10px;padding:12px 16px;margin:12px 0}h3{margin:0 0 8px;display:flex;gap:10px;align-items:center}
+img{height:22px}label{display:block;font-size:13px;margin:6px 0 2px;color:#aaa}input[type=text],input[type=password],input[type=number]{width:100%;padding:6px;background:#0c0c0e;color:#eee;border:1px solid #333;border-radius:6px;box-sizing:border-box}
+button{padding:9px 18px;border:0;border-radius:6px;background:#7c3aed;color:#fff;cursor:pointer}.s{font-size:12px;color:#9a9}.e{color:#f88}
+#bar{position:fixed;bottom:0;left:0;right:0;background:#1c1c1f;padding:10px;text-align:center;border-top:1px solid #333}
+iframe{width:100%;height:110px;border:1px dashed #444;background:repeating-conic-gradient(#222 0 25%,#2a2a2a 0 50%) 0 0/16px 16px;border-radius:8px}</style></head><body>
+<h2>MalikGPT Viewer Counter</h2>
+<div class="card"><b>Browser-source URL (OBS / Meld)</b><br><input type="text" id="u" readonly onclick="this.select()"><div class="s">Optional: ?scale=1.5 &amp; align=left|center|right. Set source size e.g. 1200x120.</div></div>
+<div class="card"><b>Preview</b><iframe src="/overlay"></iframe></div><div id="c"></div>
+<div id="bar"><button onclick="saveAll()">Save all platforms</button> <span id="msg" class="s"></span></div>
+<script>
+const note={tiktok:'Enable only when ready.',instagram:'Detects live only; no viewer count from Graph API.',nimo:'Experimental.',youtube:'api_key is optional (blank = unofficial scraping).'};
+const secret=k=>/key|secret|token/.test(k);let cfg={};
+document.getElementById('u').value=location.origin+'/overlay';
+async function build(){const r=await (await fetch('/api/admin/config')).json();cfg=r.config;const c=document.getElementById('c');c.innerHTML='';
+for(const[n,v]of Object.entries(cfg)){const d=document.createElement('div');d.className='card';
+let h=`<h3><img src="/logos/${n}.svg">${n} <span class="s" id="st-${n}"></span></h3><div class="s">${note[n]||''}</div>
+<label><input type="checkbox" id="${n}-enabled" ${v.enabled?'checked':''}> Enabled</label><label>Refresh interval (s)</label><input type="number" id="${n}-interval" min="5" value="${v.interval}">`;
+for(const k of Object.keys(v).filter(k=>!['enabled','interval'].includes(k)))h+=`<label>${k}</label><input type="${secret(k)?'password':'text'}" id="${n}-${k}" value="${secret(k)?'':v[k]}" placeholder="${secret(k)&&v[k]==='set'?'(saved - leave blank to keep)':''}">`;
+d.innerHTML=h;c.appendChild(d)}status(r.status)}
+function status(s){for(const[n,p]of Object.entries(s)){const e=document.getElementById('st-'+n);if(e)e.innerHTML=(p.enabled?(p.live?'LIVE '+(p.viewers??'n/a'):'offline'):'disabled')+' | last ok: '+(p.age==null?'never':p.age+'s ago')+(p.last_error?' <span class=e>| '+p.last_error+'</span>':'')}}
+async function refresh(){try{status((await (await fetch('/api/admin/config')).json()).status)}catch(e){}}
+async function saveAll(){const m=document.getElementById('msg');m.textContent='Saving...';
+for(const[n,v]of Object.entries(cfg)){const b={};for(const k of Object.keys(v)){const e=document.getElementById(n+'-'+k);b[k]=k==='enabled'?e.checked:e.value}
+const r=await fetch('/api/admin/config/'+n,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});if(!r.ok){m.textContent='Failed on '+n;return}}
+m.textContent='Saved all.';await build()}
+build();setInterval(refresh,5000);
+</script></body></html>
