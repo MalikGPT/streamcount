@@ -14,12 +14,30 @@ const AGENTS = [
 ];
 const ua = () => process.env.USER_AGENT || AGENTS[Math.floor(Math.random() * AGENTS.length)];
 
+const { execFile } = require("child_process");
+const curl = (url) => new Promise((res, rej) =>
+  execFile(process.platform === "win32" ? "curl.exe" : "curl",
+    ["-sS", "-L", "--max-time", "20", "-A", ua(), "-H", "Accept: application/json,*/*",
+     "-H", "Accept-Language: en-US,en;q=0.9", "-w", "\n%{http_code}", url],
+    (e, out) => { if (e) return rej(e); const i = out.lastIndexOf("\n");
+      res({ status: +out.slice(i + 1), text: out.slice(0, i) }); }));
+
+async function getJson(url) {
+  let status, text;
+  try {
+    const r = await fetch(url, { headers: { "User-Agent": ua(), Accept: "application/json,*/*", "Accept-Language": "en-US,en;q=0.9" } });
+    status = r.status; text = await r.text();
+  } catch (e) { status = 0; text = String(e.message); }
+  if (status !== 200) {  // Node's TLS fingerprint is sometimes blocked: retry with curl
+    console.warn(`fetch status ${status}: ${text.replace(/\s+/g, " ").slice(0, 120)} -> trying curl`);
+    try { ({ status, text } = await curl(url)); } catch (e) { throw new Error("curl unavailable: " + e.message); }
+  }
+  if (status !== 200) throw new Error(`Rumble HTTP ${status}: ${text.replace(/\s+/g, " ").slice(0, 100)}`);
+  try { return JSON.parse(text); } catch { throw new Error("Rumble returned non-JSON: " + text.slice(0, 80)); }
+}
+
 async function check() {
-  const r = await fetch(`${API}?key=${encodeURIComponent(KEY)}`, {
-    headers: { "User-Agent": ua(), Accept: "application/json,text/plain,*/*", "Accept-Language": "en-US,en;q=0.9" },
-  });
-  if (!r.ok) throw new Error(`Rumble HTTP ${r.status}`);
-  const j = await r.json();
+  const j = await getJson(`${API}?key=${encodeURIComponent(KEY)}`);
   const list = j.livestreams || ("is_live" in j ? [j] : []);
   const s = list.find((x) => x.is_live);
   return s ? { live: true, viewers: s.watching_now == null ? null : Number(s.watching_now) }
