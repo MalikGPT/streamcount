@@ -9,13 +9,12 @@ html,body{margin:0;background:transparent;overflow:hidden;height:100%}
 .logo.in{opacity:1;transform:scale(1)}
 .logo.out{opacity:0;transform:scale(.4);width:0;margin-left:calc(-14px*var(--s,1))}
 #num{font-variant-numeric:tabular-nums}
-#lbl{font-size:.42em;letter-spacing:.12em;font-weight:700;opacity:.9}
-</style></head><body><div id="bar"><div id="logos"></div><span id="num"></span><span id="lbl"></span></div>
+</style></head><body><div id="bar"><div id="logos"></div><span id="num"></span></div>
 <script>
 const q=new URLSearchParams(location.search),bar=document.getElementById('bar');
 document.documentElement.style.setProperty('--s',q.get('scale')||1);
 if(q.get('align'))bar.classList.add(q.get('align'));
-const L=document.getElementById('logos'),N=document.getElementById('num'),B=document.getElementById('lbl');
+const L=document.getElementById('logos'),N=document.getElementById('num');
 let shown=[],cur=0,tgt=0,raf;
 function tick(){cur+= (tgt-cur)*.2; if(Math.abs(tgt-cur)<.5)cur=tgt; N.textContent=Math.round(cur).toLocaleString('en-US'); if(cur!==tgt)raf=requestAnimationFrame(tick)}
 function apply(s){
@@ -25,8 +24,8 @@ function apply(s){
  const ord=['youtube','twitch','rumble','tiktok','kick','nimo','instagram'];
  [...L.children].sort((a,b)=>ord.indexOf(a.id.slice(2))-ord.indexOf(b.id.slice(2))).forEach(e=>L.appendChild(e));
  shown=s.platforms.slice();
- if(s.live){tgt=s.total;B.textContent='VIEWERS';cancelAnimationFrame(raf);tick()}
- else{N.textContent='OFFLINE';B.textContent='';cur=tgt=0}
+ if(s.live){tgt=s.total;cancelAnimationFrame(raf);tick()}
+ else{N.textContent='OFFLINE';cur=tgt=0}
 }
 function connect(){const es=new EventSource('/events');es.onmessage=e=>apply(JSON.parse(e.data));}
 connect(); // EventSource auto-reconnects
