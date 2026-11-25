@@ -8,13 +8,13 @@ iframe{width:100%;height:110px;border:1px dashed #444;background:repeating-conic
 <div class="card"><b>Browser-source URL (OBS / Meld)</b><br><input type="text" id="u" readonly onclick="this.select()"><div class="s">Optional: ?scale=1.5 &amp; align=left|center|right. Set source size e.g. 1200x120.</div></div>
 <div class="card"><b>Preview</b><iframe src="/overlay"></iframe></div><div id="c"></div>
 <script>
-const set={tiktok:'Disabled until you enable it.',instagram:'Detects live only; Graph API gives no concurrent viewers.',nimo:'Experimental unofficial page parsing.'};
+const set={tiktok:'Disabled until you enable it.',instagram:'Set username + session_id for UNOFFICIAL real viewer count (unverified, see docs/INSTAGRAM.md). Without session_id: Graph API, detects live only.',nimo:'Experimental unofficial page parsing.'};
 document.getElementById('u').value=location.origin+'/overlay';
 async function load(){const r=await (await fetch('/api/admin/config')).json();const c=document.getElementById('c');c.innerHTML='';
 for(const[n,v]of Object.entries(r.config)){const st=r.status[n];const d=document.createElement('div');d.className='card';
 let h=`<h3><img src="/logos/${n}.svg">${n} <span class="s">${st.enabled?(st.live?'LIVE '+(st.viewers??'n/a'):'offline'):'disabled'} | last ok: ${st.age==null?'never':st.age+'s ago'} ${st.last_error?'<span class=e>| '+st.last_error+'</span>':''}</span></h3><div class="s">${set[n]||''}</div>
 <label><input type="checkbox" id="${n}-enabled" ${v.enabled?'checked':''}> Enabled</label><label>Refresh interval (s)</label><input type="number" id="${n}-interval" min="5" value="${v.interval}">`;
-for(const k of Object.keys(v).filter(k=>!['enabled','interval'].includes(k)))h+=`<label>${k}</label><input type="${v[k]==='set'||/key|secret|token/.test(k)?'password':'text'}" id="${n}-${k}" value="${v[k]}" placeholder="${/key|secret|token/.test(k)?'(leave to keep current)':''}">`;
+for(const k of Object.keys(v).filter(k=>!['enabled','interval'].includes(k)))h+=`<label>${k}</label><input type="${v[k]==='set'||/key|secret|token|session/.test(k)?'password':'text'}" id="${n}-${k}" value="${v[k]}" placeholder="${/key|secret|token|session/.test(k)?'(leave to keep current)':''}">`;
 d.innerHTML=h+`<button onclick="save('${n}',${JSON.stringify(Object.keys(v))})">Save</button>`;c.appendChild(d)}}
 async function save(n,keys){const b={};for(const k of keys){const e=document.getElementById(n+'-'+k);b[k]=k==='enabled'?e.checked:e.value}
 await fetch('/api/admin/config/'+n,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});load()}

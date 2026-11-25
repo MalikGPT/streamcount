@@ -143,8 +143,14 @@ async def nimo(cfg, http, ctx):
 
 
 async def instagram(cfg, http, ctx):
-    """Detects a live broadcast only; the API has no concurrent-viewer field, so viewers=None.
-    Tokens starting 'IG' (Instagram Login) use graph.instagram.com; others use graph.facebook.com."""
+    """Two modes. (1) UNOFFICIAL, real concurrent viewers: if `session_id` is set, delegates to
+    instagram_live.poll (private-API endpoints, own account, unverified; see docs/INSTAGRAM.md).
+    (2) Otherwise the official Graph API: detects a live broadcast only; it has no concurrent-viewer
+    field, so viewers=None. Tokens starting 'IG' (Instagram Login) use graph.instagram.com; others
+    use graph.facebook.com."""
+    if cfg.get("session_id"):
+        from instagram_live import poll
+        return await poll(cfg, http, ctx)
     need(cfg, "ig_user_id", "access_token")
     host = "graph.instagram.com" if cfg["access_token"].startswith("IG") else "graph.facebook.com"
     r = await http.get(f"https://{host}/v21.0/{cfg['ig_user_id']}/live_media",
@@ -189,5 +195,5 @@ FIELDS = dict(
     tiktok=[("username", 0)],
     kick=[("slug", 0), ("client_id", 0), ("client_secret", 1)],
     nimo=[("room_id", 0)],
-    instagram=[("ig_user_id", 0), ("access_token", 1)],
+    instagram=[("username", 0), ("session_id", 1), ("ig_user_id", 0), ("access_token", 1)],  # session_id => unofficial viewer count
 )  # (name, is_secret)

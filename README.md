@@ -4,7 +4,7 @@ Cloud service (FastAPI, Render) that polls 7 platforms, auto-detects live/offlin
 overlay: `[live platform logos] [combined concurrent viewers]`. Overlay URL: `https://<service>.onrender.com/overlay`.
 
 ## Honest status (read first)
-Only `core.py` (live/offline confirmation, stale handling, totals) is unit-tested: `python tests/test_core.py` (5 pass).
+Only `core.py` (live/offline confirmation, stale handling, totals) is unit-tested: `python tests/test_core.py` (5 pass); Instagram adapter is mock-tested only: `python tests/test_instagram.py`.
 **No platform adapter, the server, the overlay, Render deploy, OBS or Meld has been run.** Everything below is UNTESTED until you confirm it.
 Research is from the author's prior knowledge, not freshly verified: check each doc link before relying on it.
 
@@ -16,7 +16,7 @@ Research is from the author's prior knowledge, not freshly verified: check each 
 | TikTok | `TikTokLive` lib, `RoomUserSeqEvent` | Yes (unofficial, WebSocket) | username only; cloud IPs may be blocked | untested, disabled by default |
 | Kick | Official public API `GET /public/v1/channels?slug=` stream object | Expected (verify field) | OAuth client credentials | untested |
 | Nimo | Unofficial: parses public room page | Unverified guesses; errors out if fields absent | none | experimental |
-| Instagram | Graph API `/{ig-user-id}/live_media` for live detection only | **No**: Graph API has no concurrent viewer field. Logo shows, count not added | Meta access token | untested; `heartbeat_and_get_viewer_count` (private API) deliberately not used (ToS/ban risk) |
+| Instagram | Optional UNOFFICIAL mode (set `session_id`): private-API `live/{id}/info/` `viewer_count`, see `docs/INSTAGRAM.md`. Default: Graph API `/{ig-user-id}/live_media`, live detection only | Unofficial mode: intended yes, **unverified live** (mock-tested). Graph mode: no | Own `sessionid` cookie (unofficial) or Meta access token | untested live; `heartbeat_and_get_viewer_count` (private API) deliberately not used (ToS/ban risk) |
 
 Docs: developers.google.com/youtube/v3/docs/videos, dev.twitch.tv/docs/api/reference/#get-streams, docs.kick.com,
 github.com/isaackogan/TikTokLive, developers.facebook.com/docs/instagram-platform (live_media), rumble.com creator dashboard (Live Stream API).

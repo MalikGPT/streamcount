@@ -28,7 +28,8 @@ def clean(e):
     if isinstance(e, httpx.HTTPStatusError):
         msg += " | " + e.response.text[:200]
     msg = re.sub(r"//[^/@\s]+@", "//***@", msg)
-    return re.sub(r"(access_token|api_key|key|client_secret|token)=[^&\s'\"]+", r"\1=***", msg)
+    msg = re.sub(r"(?i)(sessionid|ds_user_id)[=:]\s*[^;\s'\"]+", r"\1=***", msg)
+    return re.sub(r"(access_token|api_key|session_id|sessionid|key|client_secret|token)=[^&\s'\"]+", r"\1=***", msg)
 
 
 async def worker(name, http):

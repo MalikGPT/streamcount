@@ -23,3 +23,5 @@ services:
       - {key: KICK_CLIENT_SECRET, sync: false}
       - {key: RUMBLE_API_KEY, sync: false}
       - {key: INSTAGRAM_ACCESS_TOKEN, sync: false}
+      - {key: INSTAGRAM_SESSION_ID, sync: false}   # unofficial viewer count; treat like a password
+      - {key: INSTAGRAM_USERNAME, value: realmalikgpt}
