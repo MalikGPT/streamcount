@@ -36,7 +36,8 @@ async def worker(name, http):
     while True:
         cfg = config.get(name)
         mon.configure(name, cfg["enabled"], cfg["interval"])
-        if cfg["enabled"] and os.environ.get(f"{name.upper()}_MODE") != "push":
+        pushed_recently = time.time() - mon.p[name].get("pushed_at", 0) < 120
+        if cfg["enabled"] and os.environ.get(f"{name.upper()}_MODE") != "push" and not pushed_recently:
             try:
                 mon.report(name, await asyncio.wait_for(ADAPTERS[name](cfg, http, ctx), 25))
             except Exception as e:
@@ -77,6 +78,7 @@ async def push(name: str, request: Request):
         raise HTTPException(401)
     if name not in mon.p: raise HTTPException(404)
     b = await request.json()
+    mon.p[name]["pushed_at"] = time.time()  # server stops its own polling while pushes arrive
     if b.get("error"):
         mon.report(name, None, error=str(b["error"])[:200])
     else:
