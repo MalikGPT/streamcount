@@ -20,10 +20,10 @@ def get(name):
     cfg = dict(DEFAULTS[name]); cfg.update({k: v for k, v in saved.items() if v not in ("", None)})
     for k, _ in FIELDS[name]:
         cfg.setdefault(k, os.environ.get(f"{name}_{k}".upper(), ""))
-    if "enabled" not in saved and os.environ.get(f"{name}_ENABLED"):
-        cfg["enabled"] = os.environ[f"{name}_ENABLED"].lower() in ("1", "true", "yes")
-    if "interval" not in saved and os.environ.get(f"{name}_INTERVAL"):
-        cfg["interval"] = int(os.environ[f"{name}_INTERVAL"])
+    if os.environ.get(f"{name.upper()}_ENABLED"):  # env var wins over saved value
+        cfg["enabled"] = os.environ[f"{name.upper()}_ENABLED"].lower() in ("1", "true", "yes")
+    if "interval" not in saved and os.environ.get(f"{name.upper()}_INTERVAL"):
+        cfg["interval"] = int(os.environ[f"{name.upper()}_INTERVAL"])
     return cfg
 
 
